@@ -26,7 +26,7 @@
 //
 
 #include <Arduino.h>
-#include "FFat.h"
+#include "SD.h"
 
 bool mount = false;
 String path = "/";
@@ -40,7 +40,7 @@ void prompt()
 void readLineAndExecute();
 void execute(String cmd, String args);
 void help(String args);
-void format(String args);
+//void format(String args);
 void mkdir(String args);
 void rmdir(String args);
 void cd(String args);
@@ -54,12 +54,12 @@ void mv(String args);
 void setup() {
   Serial.begin(115200);
   while (!Serial) {} // wait for USB Serial to connect
-  mount = FFat.begin();
+  mount = SD.begin(GPIO_NUM_4); // ***** FOR M5 ******
   Serial.println("github.com/davervw/filecmdproc-esp32");
-  Serial.println("Copyright (c) 2023 by David R. Van Wagner");
+  Serial.println("Copyright (c) 2023, 2024 by David R. Van Wagner");
   Serial.println("MIT LICENSE");
   if (!mount)
-    Serial.println("WARNING: FFat Mount Failed");
+    Serial.println("WARNING: SD Mount Failed");
   Serial.println("esp32 disk ready for commands");
   prompt();
 }
@@ -78,26 +78,27 @@ void help(String args)
   }
   else
   {
-    Serial.println("commands are format, mkdir, rmdir, cd, cat, ls, rm, mv, hex");
+    //Serial.println("commands are format, mkdir, rmdir, cd, cat, ls, rm, mv, hex");
+    Serial.println("commands are mkdir, rmdir, cd, cat, ls, rm, mv, hex");
   }
 }
 
-void format(String args)
-{
-  if (args.length() != 0)
-  {
-    Serial.println("format arguments not supported");
-    return;
-  }
-  FFat.end();
-  path = "/";
-  Serial.print("formatting...");
-  FFat.format();
-  Serial.println();
-  mount = FFat.begin();
-  if (!mount)
-    Serial.println("WARNING: FFat Mount Failed");
-}
+// void format(String args)
+// {
+//   if (args.length() != 0)
+//   {
+//     Serial.println("format arguments not supported");
+//     return;
+//   }
+//   SD.end();
+//   path = "/";
+//   Serial.print("formatting...");
+//   SD.format();
+//   Serial.println();
+//   mount = SD.begin();
+//   if (!mount)
+//     Serial.println("WARNING: SD Mount Failed");
+//}
 
 String computePath(String local)
 {
@@ -125,7 +126,7 @@ void mkdir(String args)
     return;
   }
   String localpath = computePath(args);
-  if (!FFat.mkdir(localpath))
+  if (!SD.mkdir(localpath))
   {
     Serial.print("mkdir failed ");
     Serial.println(localpath);
@@ -140,7 +141,7 @@ void rmdir(String args)
     return;
   }
   String localpath = computePath(args);
-  if (!FFat.rmdir(localpath))
+  if (!SD.rmdir(localpath))
   {
     Serial.print("rmdir failed ");
     Serial.println(localpath);
@@ -155,7 +156,7 @@ void cd(String args)
     return;
   }
   String localpath = computePath(args);
-  File root = FFat.open(localpath);
+  File root = SD.open(localpath);
   if (!root)
   {
     Serial.print("path not found ");
@@ -181,7 +182,7 @@ void touch(String args)
     return;
   }
   String localpath = computePath(args);
-  File file = FFat.open(localpath);
+  File file = SD.open(localpath);
   if (file)
   {
     Serial.print("file exists ");
@@ -189,7 +190,7 @@ void touch(String args)
     file.close();
     return;
   }
-  file = FFat.open(localpath, FILE_WRITE);
+  file = SD.open(localpath, FILE_WRITE);
   if (!file)
   {
     Serial.print("failed to create file ");
@@ -207,7 +208,7 @@ void cat(String args)
     return;
   }
   String localpath = computePath(args);
-  File file = FFat.open(localpath);
+  File file = SD.open(localpath);
   if (!file)
   {
     Serial.print("Failed to open file ");
@@ -239,7 +240,7 @@ void hex(String args)
     return;
   }
   String localpath = computePath(args);
-  File file = FFat.open(localpath);
+  File file = SD.open(localpath);
   if (!file)
   {
     Serial.print("Failed to open file ");
@@ -275,7 +276,7 @@ void ls(String args)
     Serial.println("ls arguments not supported");
     return;
   }
-  File root = FFat.open(path);
+  File root = SD.open(path);
   if (!root)
   {
     Serial.print("Could not open directory ");
@@ -321,7 +322,7 @@ void rm(String args)
     return;
   }
   String localpath = computePath(args);
-  if (!FFat.remove(localpath))
+  if (!SD.remove(localpath))
   {
     Serial.print("Failed to remove ");
     Serial.println(args);
@@ -342,7 +343,7 @@ void mv(String args)
   dest = computePath(args.substring(first+1));
   int sourceSlash = source.lastIndexOf('/');
   int destSlash = dest.lastIndexOf('/');
-  if (!FFat.rename(source, dest))
+  if (!SD.rename(source, dest))
   {
     Serial.print("failed to move ");
     Serial.print(source);
@@ -355,8 +356,8 @@ void execute(String cmd, String args)
 {
   if (cmd.equals("help"))
     help(args);
-  else if (cmd.equals("format"))
-    format(args);
+  // else if (cmd.equals("format"))
+  //   format(args);
   else if (cmd.equals("mkdir"))
     mkdir(args);
   else if (cmd.equals("rmdir"))
